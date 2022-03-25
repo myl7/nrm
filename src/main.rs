@@ -3,7 +3,9 @@
 
 #[allow(unused_imports)]
 use byteorder::{BigEndian, LittleEndian, WriteBytesExt};
+use clap::{arg, Command as ClapCommand};
 use log;
+use log::LevelFilter;
 use nix::errno::Errno;
 use nix::libc;
 use nix::sys::ptrace;
@@ -34,16 +36,34 @@ fn main() {
                 i
             }
         }
-        None => {
-            panic!("No command to be executed");
-        }
+        None => args.len(),
     };
 
-    SimpleLogger::new().init().unwrap();
+    let matches = ClapCommand::new("norm")
+        .version("0.1.0")
+        .about("")
+        .arg(arg!(-Q --quieter "Disable any log"))
+        .arg(arg!(-q --quiet "Show error log only"))
+        .arg(arg!(-v --verbose "Show debug log"))
+        .get_matches_from(&args[..prog_i]);
+    let log_level = if matches.is_present("quieter") {
+        LevelFilter::Off
+    } else if matches.is_present("quiet") {
+        LevelFilter::Error
+    } else if matches.is_present("verbose") {
+        LevelFilter::Debug
+    } else {
+        LevelFilter::Info
+    };
+
+    SimpleLogger::new().with_level(log_level).init().unwrap();
     std::panic::set_hook(Box::new(|info| {
         log::error!("{}", info);
     }));
 
+    if prog_i == args.len() {
+        panic!("No command to be executed");
+    }
     let child = Command::new(&args[prog_i])
         .args(&args[prog_i + 1..])
         .spawn_ptrace()
