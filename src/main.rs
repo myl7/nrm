@@ -93,7 +93,7 @@ fn main() {
 
         let mut regs = ptrace::getregs(pid).expect("Failed to get child regs at syscall start");
         log::debug!(
-            "Intercepted child syscall: {}({}, {}, {}, {}, {}, {})",
+            "Trapped child syscall: {}({}, {}, {}, {}, {}, {})",
             regs.orig_rax,
             regs.rdi,
             regs.rsi,
@@ -103,25 +103,23 @@ fn main() {
             regs.r9
         );
 
-        let mut intercepted = false;
+        let mut checked = false;
+        let mut path = String::new();
         let mut blocked = false;
-        let mut checked_path = None as Option<String>;
         match regs.orig_rax as libc::c_long {
             libc::SYS_unlink => {
-                intercepted = true;
-                let path = get_unlink_path(pid, &regs);
+                checked = true;
+                path = get_unlink_path(pid, &regs);
                 if path.starts_with("/") {
                     blocked = true;
-                    checked_path = Some(path);
                     block_syscall(pid, &mut regs);
                 }
             }
             libc::SYS_unlinkat => {
-                intercepted = true;
-                let path = get_unlinkat_path(pid, &regs);
+                checked = true;
+                path = get_unlinkat_path(pid, &regs);
                 if path.starts_with("/") {
                     blocked = true;
-                    checked_path = Some(path);
                     block_syscall(pid, &mut regs);
                 }
             }
@@ -131,20 +129,14 @@ fn main() {
         ptrace::syscall(pid, None).expect(errmsg_ptrace_syscall);
         wait().unwrap();
 
-        if intercepted {
+        if checked {
             if blocked {
                 regs.rax = (-libc::EPERM) as libc::c_ulonglong;
                 ptrace::setregs(pid, regs).expect("Failed to set child regs at syscall end");
-                log::info!(
-                    "The deletion of {} has been blocked",
-                    &checked_path.unwrap()
-                );
+                log::info!("The deletion of {} has been blocked", &path);
                 break;
             } else {
-                log::debug!(
-                    "The deletion of {} has been allowed",
-                    &checked_path.unwrap()
-                )
+                log::debug!("The deletion of {} has been allowed", &path)
             }
         }
     }
