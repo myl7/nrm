@@ -11,4 +11,16 @@ license = "Apache-2.0"
 keywords = []
 categories = []
 
+[features]
+bigendian = []
+
 [dependencies]
+nix = "0.23"
+log = "0.4"
+simple_logger = { version = "2.1", default-features = false, features = ["colors", "stderr"] }
+spawn-ptrace = "0.1"
+byteorder = "1.4"
+strum = { version = "0.24", features = ["derive"] }
+path-clean = "0.1"
+lazy_static = "1.4"
+os_pipe = "1.0"
