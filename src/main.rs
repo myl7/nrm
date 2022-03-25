@@ -41,7 +41,7 @@ fn main() {
 
     let matches = ClapCommand::new("norm")
         .version("0.1.0")
-        .about("")
+        .about("Use ptrace to trap unlink* syscall and do path validation to protect your files from sad unexpected unrecoverable deletion")
         .arg(arg!(-Q --quieter "Disable any log"))
         .arg(arg!(-q --quiet "Show error log only"))
         .arg(arg!(-v --verbose "Show debug log"))
