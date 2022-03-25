@@ -249,7 +249,7 @@ fn ptrace_read_cstr(pid: Pid, mut s: *mut libc::c_void) -> nix::Result<String> {
             buf.resize(buf.len() - 1, 0);
             break;
         }
-        s = unsafe { s.offset(1) };
+        s = unsafe { s.offset(4) };
     }
     Ok(from_utf8(&buf).unwrap().to_owned())
 }
