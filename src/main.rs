@@ -23,24 +23,7 @@ use std::str::from_utf8;
 use std::{env, process};
 
 fn main() {
-    let args = env::args().collect::<Vec<_>>();
-    let prog_i = match args
-        .iter()
-        .enumerate()
-        .skip(1)
-        .find(|&(_, arg)| arg == "--" || !arg.starts_with("-"))
-    {
-        Some((i, arg)) => {
-            if arg == "--" {
-                i + 1
-            } else {
-                i
-            }
-        }
-        None => args.len(),
-    };
-
-    let cfg = parse_args(&args[..prog_i]);
+    let cfg = parse_args();
 
     SimpleLogger::new()
         .with_level(cfg.log_level)
@@ -50,11 +33,11 @@ fn main() {
         log::error!("{}", info);
     }));
 
-    if prog_i == args.len() {
+    if cfg.cmd.len() <= 0 {
         panic!("No command to be executed");
     }
-    let child = Command::new(&args[prog_i])
-        .args(&args[prog_i + 1..])
+    let child = Command::new(&cfg.cmd[0])
+        .args(&cfg.cmd)
         .spawn_ptrace()
         .expect("Failed to spawn child with ptrace enabled");
     log::debug!("Child started");
