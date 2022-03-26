@@ -2,6 +2,11 @@
 
 Use [ptrace][ptrace-man] to trap [`unlink*`][unlink-man] syscall and do path validation to protect your files from sad unexpected unrecoverable deletion
 
+## Progress
+
+Now only `nrm rm /tmp/test` can be finely detected and blocked.
+**ALPHA STAGE, DO NOT USE IT UNLESS YOU KNOW WHAT YOU ARE DOING!**
+
 ## Usage
 
 Run `nrm -h` to view help of nrm part.
