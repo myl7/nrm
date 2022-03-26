@@ -9,6 +9,16 @@ Any args after `--` or started from the first non-`-`-prefixed arg are considere
 
 Currently no deletions are allowed
 
+## Installation
+
+Install from crates.io: `cargo install nrm`
+
+Build from source: `cargo build --release`
+
+Features:
+
+- `bigendian`: In case your device is (the rare) big endian
+
 ## License
 
 Copyright (c) 2022 myl7
