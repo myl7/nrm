@@ -1,11 +1,12 @@
 // Copyright (c) 2022 myl7
 // SPDX-License-Identifier: Apache-2.0
 
+mod cfg;
+
+use crate::cfg::parse_args;
 #[allow(unused_imports)]
 use byteorder::{BigEndian, LittleEndian, WriteBytesExt};
-use clap::{arg, Command as ClapCommand};
 use log;
-use log::LevelFilter;
 use nix::errno::Errno;
 use nix::libc;
 use nix::sys::ptrace;
@@ -39,24 +40,12 @@ fn main() {
         None => args.len(),
     };
 
-    let matches = ClapCommand::new("norm")
-        .version("0.1.0")
-        .about("Use ptrace to trap unlink* syscall and do path validation to protect your files from sad unexpected unrecoverable deletion")
-        .arg(arg!(-Q --quieter "Disable any log"))
-        .arg(arg!(-q --quiet "Show error log only"))
-        .arg(arg!(-v --verbose "Show debug log"))
-        .get_matches_from(&args[..prog_i]);
-    let log_level = if matches.is_present("quieter") {
-        LevelFilter::Off
-    } else if matches.is_present("quiet") {
-        LevelFilter::Error
-    } else if matches.is_present("verbose") {
-        LevelFilter::Debug
-    } else {
-        LevelFilter::Info
-    };
+    let cfg = parse_args(&args[..prog_i]);
 
-    SimpleLogger::new().with_level(log_level).init().unwrap();
+    SimpleLogger::new()
+        .with_level(cfg.log_level)
+        .init()
+        .unwrap();
     std::panic::set_hook(Box::new(|info| {
         log::error!("{}", info);
     }));
