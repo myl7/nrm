@@ -183,7 +183,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "norm"
+name = "nrm"
 version = "0.1.0"
 dependencies = [
  "byteorder",

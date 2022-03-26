@@ -1,12 +1,12 @@
 [package]
-name = "norm"
+name = "nrm"
 version = "0.1.0"
 edition = "2021"
 authors = ["myl7 <myl@myl.moe>"]
 description = "Use ptrace to trap unlink* syscall and do path validation to protect your files from sad unexpected unrecoverable deletion"
-documentation = "https://github.com/myl7/norm#readme"
-homepage = "https://github.com/myl7/norm"
-repository = "https://github.com/myl7/norm.git"
+documentation = "https://github.com/myl7/nrm#readme"
+homepage = "https://github.com/myl7/nrm"
+repository = "https://github.com/myl7/nrm.git"
 license = "Apache-2.0"
 keywords = ["ptrace", "cli"]
 categories = ["command-line-utilities"]

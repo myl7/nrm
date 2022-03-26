@@ -1,10 +1,10 @@
-# norm
+# nrm
 
 Use [ptrace][ptrace-man] to trap [`unlink*`][unlink-man] syscall and do path validation to protect your files from sad unexpected unrecoverable deletion
 
 ## Usage
 
-Run `norm -h` to view help of norm part.
+Run `nrm -h` to view help of nrm part.
 Any args after `--` or started from the first non-`-`-prefixed arg are considered child commands and re-executed.
 
 Currently no deletions are allowed

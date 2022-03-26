@@ -11,7 +11,7 @@ pub struct Cfg {
 }
 
 pub fn parse_args() -> Cfg {
-    let matches = Command::new("norm")
+    let matches = Command::new("nrm")
         .version("0.1.0")
         .about("Use ptrace to trap unlink* syscall and do path validation to protect your files from sad unexpected unrecoverable deletion")
         .arg_required_else_help(true)
