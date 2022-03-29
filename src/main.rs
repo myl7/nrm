@@ -7,10 +7,9 @@ use crate::cfg::parse_args;
 #[allow(unused_imports)]
 use byteorder::{BigEndian, LittleEndian, WriteBytesExt};
 use log;
-use nix::errno::Errno;
 use nix::libc;
 use nix::sys::ptrace;
-use nix::sys::wait::{wait, WaitStatus};
+use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{fchdir, Pid};
 use path_clean::PathClean;
 use simple_logger::SimpleLogger;
@@ -45,23 +44,17 @@ fn main() {
     let mut pids = Vec::new();
     ptrace::setoptions(
         pid,
-        ptrace::Options::PTRACE_O_EXITKILL | ptrace::Options::PTRACE_O_TRACEFORK,
+        ptrace::Options::PTRACE_O_EXITKILL
+            | ptrace::Options::PTRACE_O_TRACESYSGOOD
+            | ptrace::Options::PTRACE_O_TRACEFORK
+            | ptrace::Options::PTRACE_O_TRACECLONE,
     )
     .unwrap();
 
+    let mut signal = None;
     loop {
-        match ptrace::syscall(pid, None) {
-            Err(errno) => {
-                if errno == Errno::ESRCH {
-                    break;
-                } else {
-                    Err::<(), nix::Error>(errno).unwrap();
-                }
-            }
-            _ => (),
-        }
-        let wstatus = wait().unwrap();
-        match wstatus {
+        ptrace::syscall(pid, signal.take()).unwrap();
+        match waitpid(pid, None).unwrap() {
             WaitStatus::Exited(_, _) | WaitStatus::Signaled(_, _, _) => {
                 log::debug!("Process {} exited", pid);
                 if pids.is_empty() {
@@ -71,20 +64,19 @@ fn main() {
                     continue;
                 }
             }
-            WaitStatus::PtraceEvent(_, _, event) => {
-                if event == libc::PTRACE_EVENT_FORK {
-                    pids.push(pid);
-                    pid = Pid::from_raw(ptrace::getevent(pid).unwrap() as libc::pid_t);
-                    log::debug!("New process {} started", pid);
-                    continue;
-                }
+            WaitStatus::PtraceSyscall(_) => (),
+            WaitStatus::Stopped(_, sig) => {
+                log::debug!("Process received signal {}", &sig);
+                signal = Some(sig);
+                continue;
             }
-            _ => (),
+            ws => panic!("{:?}", ws),
         }
 
         let mut regs = ptrace::getregs(pid).unwrap();
         log::trace!(
-            "Trapped child syscall: {}({}, {}, {}, {}, {}, {})",
+            "Trapped child syscall: pid {} {}({}, {}, {}, {}, {}, {})",
+            pid,
             regs.orig_rax,
             regs.rdi,
             regs.rsi,
@@ -118,7 +110,24 @@ fn main() {
         }
 
         ptrace::syscall(pid, None).unwrap();
-        wait().unwrap();
+        loop {
+            match waitpid(pid, None).unwrap() {
+                WaitStatus::PtraceSyscall(_) => break,
+                WaitStatus::PtraceEvent(_, _, event) => match event {
+                    libc::PTRACE_EVENT_FORK | libc::PTRACE_EVENT_CLONE => {
+                        pids.push(pid);
+                        pid = Pid::from_raw(ptrace::getevent(pid).unwrap() as libc::pid_t);
+                        log::debug!("New process {} started", pid);
+                        break;
+                    }
+                    e => panic!("{:?}", e),
+                },
+                WaitStatus::Stopped(_, _) => {
+                    // TODO
+                }
+                ws => panic!("{:?}", ws),
+            }
+        }
 
         if checked {
             if blocked {
