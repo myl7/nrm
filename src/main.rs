@@ -39,7 +39,7 @@ fn main() {
     let child = Command::new(&cfg.cmd[0])
         .args(&cfg.cmd)
         .spawn_ptrace()
-        .expect("Failed to spawn child with ptrace enabled");
+        .unwrap();
     log::debug!("Child started");
     let mut pid = Pid::from_raw(child.id() as libc::pid_t);
     let mut pids = Vec::new();
@@ -47,16 +47,15 @@ fn main() {
         pid,
         ptrace::Options::PTRACE_O_EXITKILL | ptrace::Options::PTRACE_O_TRACEFORK,
     )
-    .expect("Failed to set child ptrace options");
+    .unwrap();
 
-    let errmsg_ptrace_syscall = "Failed to let child go to next syscall entrance/exit";
     loop {
         match ptrace::syscall(pid, None) {
             Err(errno) => {
                 if errno == Errno::ESRCH {
                     break;
                 } else {
-                    panic!("{}: {:?}", errmsg_ptrace_syscall, errno);
+                    Err::<(), nix::Error>(errno).unwrap();
                 }
             }
             _ => (),
@@ -83,7 +82,7 @@ fn main() {
             _ => (),
         }
 
-        let mut regs = ptrace::getregs(pid).expect("Failed to get child regs at syscall start");
+        let mut regs = ptrace::getregs(pid).unwrap();
         log::debug!(
             "Trapped child syscall: {}({}, {}, {}, {}, {}, {})",
             regs.orig_rax,
@@ -118,13 +117,13 @@ fn main() {
             _ => (),
         }
 
-        ptrace::syscall(pid, None).expect(errmsg_ptrace_syscall);
+        ptrace::syscall(pid, None).unwrap();
         wait().unwrap();
 
         if checked {
             if blocked {
                 regs.rax = (-libc::EPERM) as libc::c_ulonglong;
-                ptrace::setregs(pid, regs).expect("Failed to set child regs at syscall end");
+                ptrace::setregs(pid, regs).unwrap();
                 log::info!("The deletion of {} has been blocked", &path);
                 break;
             } else {
@@ -135,11 +134,9 @@ fn main() {
     log::debug!("Child exited");
 }
 
-const ERRMSG_PTRACE_SETREGS_START: &str = "Failed to set child regs at syscall start";
-
 fn block_syscall(pid: Pid, regs: &mut libc::user_regs_struct) {
     regs.orig_rax = u64::MAX as libc::c_ulonglong;
-    ptrace::setregs(pid, *regs).expect(ERRMSG_PTRACE_SETREGS_START);
+    ptrace::setregs(pid, *regs).unwrap();
 }
 
 const ERRMSG_PTRACE_ARG_STR: &str = "Failed to read path str";
