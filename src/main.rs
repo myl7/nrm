@@ -37,7 +37,7 @@ fn main() {
         panic!("No command to be executed");
     }
     let child = Command::new(&cfg.cmd[0])
-        .args(&cfg.cmd)
+        .args(&cfg.cmd[1..])
         .spawn_ptrace()
         .unwrap();
     log::debug!("Child started");
