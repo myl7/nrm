@@ -41,9 +41,13 @@ fn main() {
         .spawn_ptrace()
         .expect("Failed to spawn child with ptrace enabled");
     log::debug!("Child started");
-    let pid = Pid::from_raw(child.id() as libc::pid_t);
-    ptrace::setoptions(pid, ptrace::Options::PTRACE_O_EXITKILL)
-        .expect("Failed to set child ptrace options");
+    let mut pid = Pid::from_raw(child.id() as libc::pid_t);
+    let mut pids = Vec::new();
+    ptrace::setoptions(
+        pid,
+        ptrace::Options::PTRACE_O_EXITKILL | ptrace::Options::PTRACE_O_TRACEFORK,
+    )
+    .expect("Failed to set child ptrace options");
 
     let errmsg_ptrace_syscall = "Failed to let child go to next syscall entrance/exit";
     loop {
@@ -59,7 +63,23 @@ fn main() {
         }
         let wstatus = wait().unwrap();
         match wstatus {
-            WaitStatus::Exited(_, _) | WaitStatus::Signaled(_, _, _) => break,
+            WaitStatus::Exited(_, _) | WaitStatus::Signaled(_, _, _) => {
+                log::debug!("Process {} exited", pid);
+                if pids.is_empty() {
+                    break;
+                } else {
+                    pid = pids.pop().unwrap();
+                    continue;
+                }
+            }
+            WaitStatus::PtraceEvent(_, _, event) => {
+                if event == libc::PTRACE_EVENT_FORK {
+                    pids.push(pid);
+                    pid = Pid::from_raw(ptrace::getevent(pid).unwrap() as libc::pid_t);
+                    log::debug!("New process {} started", pid);
+                    continue;
+                }
+            }
             _ => (),
         }
 
