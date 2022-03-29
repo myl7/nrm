@@ -11,9 +11,10 @@ pub struct Cfg {
 }
 
 pub fn parse_args() -> Cfg {
-    let matches = Command::new("nrm")
-        .version("0.1.0")
-        .about("Use ptrace to trap unlink* syscall and do path validation to protect your files from sad unexpected unrecoverable deletion")
+    let matches = Command::new(env!("CARGO_PKG_NAME"))
+        .version(env!("CARGO_PKG_VERSION"))
+        .about(env!("CARGO_PKG_DESCRIPTION"))
+        .author(env!("CARGO_PKG_AUTHORS"))
         .arg_required_else_help(true)
         .allow_external_subcommands(true)
         .arg(arg!(-Q --quieter "Disable any log"))
