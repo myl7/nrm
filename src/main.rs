@@ -83,7 +83,7 @@ fn main() {
         }
 
         let mut regs = ptrace::getregs(pid).unwrap();
-        log::debug!(
+        log::trace!(
             "Trapped child syscall: {}({}, {}, {}, {}, {}, {})",
             regs.orig_rax,
             regs.rdi,
